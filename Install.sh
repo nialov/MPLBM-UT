@@ -11,7 +11,7 @@ cd ../../1-phase_LBM/build
 cmake ..
 make -j 2
 
-cd ../../
-python -m pip install --upgrade pip
-python -m pip install --upgrade setuptools
-pip install python/
+cd ../../..
+python -m venv .venv
+source .venv/bin/activate.fish
+pip install src/python/
