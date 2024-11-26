@@ -1,5 +1,4 @@
-{ inputs, buildFHSUserEnv, lib, writeScript, system, writeShellApplication, ...
-}:
+{ buildFHSUserEnv, lib, ... }:
 buildFHSUserEnv {
   name = "MPLBM-UT-shell";
 
@@ -20,15 +19,18 @@ buildFHSUserEnv {
       # in pkgs.cmake;
 
     } ++ pythons;
-  runScript = let
-    app = writeShellApplication {
-      name = "entrypoint";
-      text = ''
-        exec /usr/bin/env fish "$@"
-      '';
+  runScript = ''
+    bash "$@"
+  '';
+  # let
+  #   app = writeShellApplication {
+  #     name = "entrypoint";
+  #     text = ''
+  #       exec ${fish}/bin/fish "$@"
+  #     '';
 
-    };
-  in "${app}/bin/entrypoint";
+  #   };
+  # in "${app}/bin/entrypoint";
   #writeScript "entrypoint.sh" ''
   #  #!/usr/bin/env bash
 
@@ -37,5 +39,8 @@ buildFHSUserEnv {
 
   profile =
 
-    "";
+    ''
+      test ! -f ".venv/bin/activate" && python -m venv .venv
+      test -f ".venv/bin/activate" && source ".venv/bin/activate"
+    '';
 }

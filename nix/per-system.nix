@@ -15,8 +15,11 @@
         devShells = {
           default = pkgs.mkShell {
             buildInputs = lib.attrValues { };
-            shellHook = config.pre-commit.installationScript + ''
+            shellHook = let shell = "${pkgs.MPLBM-UT-shell}/bin/MPLBM-UT-shell";
+
+            in config.pre-commit.installationScript + ''
               export PROJECT_DIR="$PWD"
+              exec ${shell} -c "$SHELL"
             '';
           };
 
