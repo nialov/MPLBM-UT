@@ -196,3 +196,4 @@ pyrightconfig.json
 /examples/**/tmp/*.txt
 /examples/**/tmp/*.gif
 /examples/single_phase_permeability_flop_data/
+/examples/FLOP_*
