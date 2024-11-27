@@ -2,11 +2,18 @@ import glob
 import itertools
 import operator
 import os
+from pathlib import Path
 
+import joblib
 import mplbm_utils as mplbm
 import numpy as np
 import pyvista as pv
 import vedo as vd
+
+JOBLIB_CACHE = joblib.Memory(
+    ".cache/joblib",
+    verbose=1,
+)
 
 
 def get_velocity_files(inputs):
@@ -23,6 +30,7 @@ def get_velocity_files(inputs):
 
 
 def visualize_medium(inputs):
+    # input_folder = inputs["input output"]["input folder"]
     output_folder = inputs["input output"]["output folder"]
     nx = inputs["domain"]["domain size"]["nx"]
     ny = inputs["domain"]["domain size"]["ny"]
@@ -53,46 +61,86 @@ def visualize_velocity(inputs, vel_file):
     print(np.amax(vel_mesh), np.amin(vel_mesh))
     vel_mesh = vel_mesh[:, :, n_slices:nx]
     vel_thresholds = np.linspace(np.amin(vel_mesh), np.amax(vel_mesh), 20)
-    vel = vd.Volume(vel_mesh).isosurface(vel_thresholds)
+    vel = vd.Volume(vel_mesh).isosurface(vel_thresholds).decimate(0.1)
 
     return vel
 
 
-# Get inputs
-input_file = "input.yml"
-inputs = mplbm.parse_input_file(input_file)  # Parse inputs
-inputs["input output"][
-    "simulation directory"
-] = os.getcwd()  # Store current working directory
-# inputs['domain']['inlet and outlet layers'] = 1
-# Get density files
-vel_files_list = get_velocity_files(inputs)
+def visualize_raw(inputs):
+    # Get inputs
+    raw_path = (
+        Path(__file__)
+        .parent.joinpath("input/")
+        .joinpath(inputs["geometry"]["file name"])
+    )
+    assert raw_path.exists(), raw_path
 
-index = -1  # Choose last simulation output
+    nx = inputs["domain"]["domain size"]["nx"]
+    ny = inputs["domain"]["domain size"]["ny"]
+    nz = inputs["domain"]["domain size"]["nz"]
+    arr = np.fromfile(raw_path, dtype="uint8").reshape(nz, ny, nx, order="F")
+    # arr = functools.reduce(
+    #     lambda value, func: func(value),
+    #     [
+    #         functools.partial(np.flip, axis=2),
+    #         functools.partial(np.flip, axis=),
+    #         ],
+    #     arr,
+    # )
+    # arr = np.flip(
+    #     np.flip(np.fromfile(raw_path, dtype="uint8").reshape(nz, ny, nx), axis=2),
+    #     axis=2,
+    # )
 
-# Setup plotter
-vp = vd.Plotter(axes=9, bg="w", bg2="w", size=(1200, 900), offscreen=False)
+    segmented_volume: vd.Mesh = vd.Volume(arr).isosurface().decimate(0.1)
 
-# visualize medium
-grains = visualize_medium(inputs)
-vp += grains.lighting("glossy").phong().c("seashell").opacity(0.2)
+    return segmented_volume
 
-# visualize velocity
-vel = visualize_velocity(inputs, vel_file=vel_files_list[index])
-vp += (
-    vel.cmap("turbo")
-    .lighting("glossy")
-    .opacity(0.6)
-    .add_scalarbar("Velocity [LBM Units]")
-)  # .c('lightblue')
 
-cam = dict(
-    pos=(-85.32, 283.2, 150.6),
-    focalPoint=(53.64, 39.77, 36.63),
-    viewup=(0.2686, -0.2784, 0.9221),
-    distance=302.6,
-    clippingRange=(137.9, 487.7),
-)
+def main():
+    # Get inputs
+    input_file = "input.yml"
+    inputs = mplbm.parse_input_file(input_file)  # Parse inputs
+    inputs["input output"][
+        "simulation directory"
+    ] = os.getcwd()  # Store current working directory
+    # inputs['domain']['inlet and outlet layers'] = 1
+    # Get density files
+    vel_files_list = get_velocity_files(inputs)
 
-vp.show(camera=cam)
-# vp.show(camera=cam).screenshot(f'velocity_viz.png', scale=1)
+    index = -1  # Choose last simulation output
+
+    # Setup plotter
+    vp = vd.Plotter(axes=9, bg="w", bg2="w", size="auto", offscreen=False)
+
+    # visualize raw
+    raw = visualize_raw(inputs)
+    vp += raw.lighting("glossy").phong().c("seashell").opacity(0.8)
+
+    # visualize medium
+    # grains = visualize_medium(inputs)
+    # vp += grains.lighting('glossy').phong().c('seashell').opacity(0.2)
+
+    # visualize velocity
+    vel = visualize_velocity(inputs, vel_file=vel_files_list[index])
+    vp += (
+        vel.cmap("turbo")
+        .lighting("glossy")
+        .opacity(0.6)
+        .add_scalarbar("Velocity [LBM Units]")
+    )  # .c('lightblue')
+
+    # cam = dict(
+    #     pos=(100.0, 100.0, 100.0),
+    #     focalPoint=(0.0, 0.0, 0.0),
+    #     viewup=(0.0, 0.0, 0.0),
+    #     distance=0.0,
+    #     clippingRange=(0.0, 0.0),
+    # )
+
+    vp.show(axes=1)
+    # vp.show(camera=cam).screenshot(f'velocity_viz.png', scale=1)
+
+
+if __name__ == "__main__":
+    main()
