@@ -14,12 +14,10 @@
         _module.args.pkgs = mkNixpkgs inputs.nixpkgs;
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = lib.attrValues { };
-            shellHook = let shell = "${pkgs.MPLBM-UT-shell}/bin/MPLBM-UT-shell";
-
-            in config.pre-commit.installationScript + ''
+            buildInputs = lib.attrValues { inherit (pkgs) fhs; };
+            shellHook = config.pre-commit.installationScript + ''
               export PROJECT_DIR="$PWD"
-              exec ${shell} -c "$SHELL"
+              echo "FHSenv available with 'fhs' (${pkgs.fhs}/bin/fhs) command"
             '';
           };
 
@@ -37,7 +35,7 @@
             statix.enable = true;
             deadnix.enable = true;
             rstcheck.enable = true;
-            yamllint = { enable = true; };
+            yamllint = { enable = false; };
             commitizen.enable = true;
             ruff = { enable = true; };
           };

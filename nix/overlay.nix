@@ -9,9 +9,7 @@
     flake = {
       overlays.default = lib.composeManyExtensions [
         inputs.nix-extra.overlays.default
-        (final: prev: {
-          "MPLBM-UT-shell" = prev.callPackage ./shell.nix { inherit inputs; };
-        })
+        (_: prev: { "fhs" = prev.callPackage ./shell.nix { inherit inputs; }; })
 
       ];
     };

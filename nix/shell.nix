@@ -5,7 +5,7 @@ let
   base = appimageTools.defaultFhsEnvArgs;
 
   customConfig = {
-    name = "MPLBM-UT-shell";
+    name = "fhs";
 
     targetPkgs = fhsPkgs:
 
