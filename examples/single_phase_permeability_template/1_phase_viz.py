@@ -1,7 +1,6 @@
 import glob
 import itertools
 import operator
-import os
 from pathlib import Path
 
 import joblib
@@ -16,9 +15,7 @@ JOBLIB_CACHE = joblib.Memory(
 )
 
 
-def get_velocity_files(inputs):
-    tmp_folder = inputs["input output"]["output folder"]
-
+def get_velocity_files(tmp_folder):
     # Get all the density files
     vel_files_regex = rf"{tmp_folder}vtk_vel*.vti"
     vel_files = glob.glob(vel_files_regex)
@@ -68,11 +65,7 @@ def visualize_velocity(inputs, vel_file):
 
 def visualize_raw(inputs):
     # Get inputs
-    raw_path = (
-        Path(__file__)
-        .parent.joinpath("input/")
-        .joinpath(inputs["geometry"]["file name"])
-    )
+    raw_path = Path("input/").joinpath(inputs["geometry"]["file name"])
     assert raw_path.exists(), raw_path
 
     nx = inputs["domain"]["domain size"]["nx"]
@@ -101,12 +94,13 @@ def main():
     # Get inputs
     input_file = "input.yml"
     inputs = mplbm.parse_input_file(input_file)  # Parse inputs
-    inputs["input output"][
-        "simulation directory"
-    ] = os.getcwd()  # Store current working directory
+    # inputs["input output"][
+    #     "simulation directory"
+    # ] = os.getcwd()  # Store current working directory
     # inputs['domain']['inlet and outlet layers'] = 1
     # Get density files
-    vel_files_list = get_velocity_files(inputs)
+    tmp_folder = inputs["input output"]["output folder"]
+    vel_files_list = get_velocity_files(tmp_folder)
 
     index = -1  # Choose last simulation output
 
@@ -115,7 +109,7 @@ def main():
 
     # visualize raw
     raw = visualize_raw(inputs)
-    vp += raw.lighting("glossy").phong().c("seashell").opacity(0.8)
+    vp.add(raw.lighting("glossy").phong().c("seashell").opacity(0.8))
 
     # visualize medium
     # grains = visualize_medium(inputs)
@@ -123,7 +117,7 @@ def main():
 
     # visualize velocity
     vel = visualize_velocity(inputs, vel_file=vel_files_list[index])
-    vp += (
+    vp.add(
         vel.cmap("turbo")
         .lighting("glossy")
         .opacity(0.6)
@@ -137,8 +131,14 @@ def main():
     #     distance=0.0,
     #     clippingRange=(0.0, 0.0),
     # )
+    # txt = vd.Text3D(__doc__, font="Bongas", s=350, c="red2", depth=0.05)
+    # txt.pos(300, 300, 500)
+    # vp.add(txt)
 
-    vp.show(axes=1)
+    # vp.show(axes=1)
+    output_path_stem = Path(tmp_folder).joinpath(inputs["domain"]["geom name"])
+    vp.export(output_path_stem.with_suffix(".x3d").as_posix(), binary=False)
+    vp.export(output_path_stem.with_suffix(".npz").as_posix(), binary=False)
     # vp.show(camera=cam).screenshot(f'velocity_viz.png', scale=1)
 
 
